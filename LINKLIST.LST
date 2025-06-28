@@ -1,0 +1,778 @@
+     1                                  [org 0x100]
+     2                                  
+     3 00000000 E93101                      jmp start
+     4                                  
+     5                                  null: equ 0x0
+     6 00000003 0000                    head: dw 0x0
+     7 00000005 0000                    tail: dw 0x0
+     8 00000007 00                      sizeOfLL: db 0
+     9 00000008 00<rep 12Ch>            list: times 300 db 0
+    10                                  
+    11                                  start:
+    12 00000134 E82104                      call clrscr
+    13                                  
+    14 00000137 B80500                      mov ax, 0x5
+    15 0000013A 68[0800]                    push list                   ;0x2020
+    16 0000013D E82D00                      call insertAtFirst
+    17                                  
+    18 00000140 40                          inc ax
+    19 00000141 BB[0800]                    mov bx, list
+    20 00000144 83C31E                      add bx, 30
+    21 00000147 53                          push bx
+    22 00000148 E82200                      call insertAtFirst
+    23                                  
+    24 0000014B 40                          inc ax
+    25 0000014C BB[0800]                    mov bx, list
+    26 0000014F 83C33C                      add bx, 60
+    27 00000152 53                          push bx
+    28 00000153 E88B00                      call insertAtEnd   ;insertAtFirst              ;insertAtEnd
+    29                                  
+    30                                      ; call delAtFirst
+    31                                      ; call delAtEnd
+    32                                  
+    33 00000156 B80A00                      mov ax, 0xA
+    34 00000159 83C35A                      add bx, 90  ;120
+    35 0000015C 53                          push bx
+    36 0000015D 6A01                        push 1
+    37 0000015F E85402                      call insertAtPos
+    38                                  
+    39                                      ; push 0x0
+    40                                      ; push 0x2
+    41                                      ; call getNodeAtPos
+    42                                      ; pop cx
+    43                                  
+    44                                      ; mov si, 2000
+    45                                      ; push cx
+    46                                      ; call PrintNode
+    47                                  
+    48                                      ; push 0x0
+    49                                      ; call delAtPos
+    50                                  
+    51 00000162 E82A03                      call reverseList
+    52 00000165 E86201                      call sasta_print
+    53                                  
+    54                                      endprog:
+    55 00000168 B8004C                          mov ax, 0x4c00
+    56 0000016B CD21                            int 0x21
+    57                                  
+    58                                  insertAtFirst:
+    59 0000016D 55                          push bp
+    60 0000016E 89E5                        mov bp, sp
+    61                                  
+    62 00000170 83EC02                      sub sp, 2
+    63 00000173 895EFE                      mov word [bp-2], bx             ;savung val of bx so i can use it later
+    64                                  
+    65 00000176 60                          pusha
+    66 00000177 8B5E04                      mov bx, [bp+4]                   ; starting address of node 
+    67                                  
+    68                                      setRegs:
+    69 0000017A 894704                          mov word [bx+4]  , ax
+    70                                          ; set bx
+    71 0000017D 8B46FE                              mov ax, [bp-2]                 ;value pf bx
+    72 00000180 894706                              mov word [bx+6]  , ax
+    73 00000183 894F08                          mov word [bx+8]  , cx
+    74 00000186 89570A                          mov word [bx+10] , dx
+    75 00000189 89770C                          mov word [bx+12] , si
+    76 0000018C 897F0E                          mov word [bx+14] , di
+    77 0000018F 896F10                          mov word [bx+16] , bp
+    78 00000192 896712                          mov word [bx+18] , sp        
+    79 00000195 8C4F14                          mov word [bx+20] , cs
+    80 00000198 8C5F16                          mov word [bx+22] , ds
+    81 0000019B 8C4718                          mov word [bx+24] , es
+    82 0000019E 8C571A                          mov word [bx+26] , ss
+    83                                          ;set ip
+    84 000001A1 8B4602                              mov ax, [bp+2]          ;ip value
+    85 000001A4 89471C                              mov word [bx+28] , ax         ;ip
+    86                                  
+    87                                      ; is it the first node?
+    88 000001A7 833E[0300]00                cmp word [head], null                ; treatinh 0x0 as null for now
+    89 000001AC 7513                        jne notFirst
+    90                                      
+    91                                      first:
+    92 000001AE C7070000                            mov word [bx+0] , null      ; prev
+    93 000001B2 C747020000                          mov word [bx+2] , null      ; next
+    94                                              ; update head and tail as this node
+    95 000001B7 891E[0300]                          mov word [head], bx
+    96 000001BB 891E[0500]                          mov word [tail], bx                      
+    97 000001BF EB11                                jmp exit1 
+    98                                              
+    99                                      notFirst:            
+   100 000001C1 C7070000                                mov word [bx+0]  , null       ; prev 
+   101 000001C5 8B36[0300]                              mov si, [head]     
+   102 000001C9 897702                                  mov word [bx+2]  , si         ; next
+   103                                  
+   104                                      ; ; head->prev = thisNode                           ; if yes, no need to make the old head->prev = thisnode
+   105                                      ;set links of neighbouring nodes
+   106 000001CC 8B36[0300]                      mov si, word [head]              ; si has the address at head ie the node array ka start (starting word is placeholder for prev pointer). this is the best i can expalin                        
+   107 000001D0 891C                            mov [si], bx                     ; change that prev to currentNode  i.e oldHead->prev = thisNode
+   108                                  
+   109                                      exit1: 
+   110 000001D2 891E[0300]                  mov word [head], bx                     ; update head:  ;[bp+4]       ; this is at first so this became head
+   111 000001D6 FE06[0700]                  inc byte [sizeOfLL]           ;size inc
+   112                                  
+   113 000001DA 61                          popa
+   114 000001DB 89EC                        mov sp, bp
+   115 000001DD 5D                          pop bp
+   116 000001DE C20200                      ret 2
+   117                                  
+   118                                  insertAtEnd:
+   119 000001E1 55                          push bp
+   120 000001E2 89E5                        mov bp, sp
+   121                                  
+   122 000001E4 83EC02                      sub sp, 2
+   123 000001E7 895EFE                      mov word [bp-2], bx
+   124                                  
+   125 000001EA 60                          pusha
+   126                                  
+   127 000001EB 8B5E04                      mov bx, [bp+4]                    ; starting address
+   128                                      set_regs:
+   129 000001EE 894704                          mov word [bx+4]  , ax
+   130                                          ; set bx
+   131 000001F1 8B46FE                              mov ax, [bp-2]                    ;value pf bx
+   132 000001F4 894706                              mov word [bx+6]  , ax
+   133 000001F7 894F08                          mov word [bx+8]  , cx
+   134 000001FA 89570A                          mov word [bx+10] , dx
+   135 000001FD 89770C                          mov word [bx+12] , si
+   136 00000200 897F0E                          mov word [bx+14] , di
+   137 00000203 896F10                          mov word [bx+16] , bp
+   138 00000206 896712                          mov word [bx+18] , sp        
+   139 00000209 8C4F14                          mov word [bx+20] , cs
+   140 0000020C 8C5F16                          mov word [bx+22] , ds
+   141 0000020F 8C4718                          mov word [bx+24] , es
+   142 00000212 8C571A                          mov word [bx+26] , ss
+   143                                          ; set ip
+   144 00000215 8B4602                              mov ax, [bp+2]          ;ip value
+   145 00000218 89471C                              mov word [bx+28] , ax         ;ip
+   146                                  
+   147                                      ; is it the first node?
+   148 0000021B 833E[0300]00                cmp word [head], null
+   149 00000220 7513                        jne not_first
+   150                                  
+   151                                      first_node:
+   152 00000222 C7070000                                mov word [bx+0] , null      ; prev
+   153 00000226 C747020000                              mov word [bx+2] , null      ; next
+   154                                                  ; update head and tail as this node
+   155 0000022B 891E[0300]                              mov word [head], bx
+   156 0000022F 891E[0500]                              mov word [tail], bx
+   157 00000233 EB12                                    jmp exit2
+   158                                  
+   159                                      not_first:
+   160 00000235 C747020000                      mov word [bx+2], null           ; next
+   161 0000023A 8B36[0500]                      mov si, [tail]
+   162 0000023E 8937                            mov [bx+0], si                  ; prev
+   163                                  
+   164                                  
+   165                                      ;set links of neighbouring nodes i.e Oldtail->next = thisnode
+   166 00000240 8B36[0500]                  mov si, word [tail]
+   167 00000244 895C02                      mov word [si+2], bx                 ;tail->next = tisNode
+   168                                  
+   169                                      exit2:
+   170 00000247 891E[0500]                  mov word [tail], bx                 ; update tail      ; [bp+4]       ; this is at first so this became head
+   171 0000024B FE06[0700]                  inc byte [sizeOfLL]                 ;size inc
+   172                                  
+   173 0000024F 61                          popa
+   174 00000250 89EC                        mov sp, bp
+   175 00000252 5D                          pop bp
+   176 00000253 C20200                      ret 2
+   177                                  delAtFirst:
+   178 00000256 60                          pusha
+   179                                  
+   180                                      ; algo for help
+   181                                          ; if only 1 node : 
+   182                                              ; head = null
+   183                                              ; tail = null
+   184                                          ; else
+   185                                          ;                                                                       head->next->prev = null
+   186                                          ;     head = head->next             ;update head
+   187                                          ;     head->prev = null
+   188                                  
+   189 00000257 833E[0700]00                cmp word [sizeOfLL], 0x0
+   190 0000025C 7426                        je exit3                   ;if no nodes exist to del, simply exit
+   191                                  
+   192                                      ; more than one node?
+   193 0000025E 8B36[0300]                  mov si, [head]
+   194 00000262 8B5C02                      mov bx, [si+2]              ; bx = head->next
+   195 00000265 83FB00                      cmp bx, null
+   196 00000268 750E                        jne multipleNodes
+   197                                  
+   198 0000026A C706[0300]0000                  mov word [head], null    
+   199 00000270 C706[0500]0000                  mov word [tail], null
+   200 00000276 EB08                            jmp size_update1
+   201                                  
+   202                                      multipleNodes:
+   203                                          ;  head update              ---> tail = tail->prev
+   204 00000278 891E[0300]                      mov word [head], bx         ; bx has head next rn. so, head = head->next
+   205                                          
+   206                                          ; updatedHead->prev = null
+   207 0000027C C7070000                        mov word [bx+0], null
+   208                                  
+   209                                          ; ;head = head->next
+   210                                          ; mov bx, [head]
+   211                                          ; mov ax, [bx+2]                  ; next of head
+   212                                          ; mov word [head], ax             ; head = head->next 
+   213                                  
+   214                                          ; ; newHead->prev = null
+   215                                          ; mov bx, [head]
+   216                                          ; mov word [head+0], null         ; head->prev = null;
+   217                                  
+   218                                      size_update1:
+   219 00000280 FE0E[0700]                                  dec byte [sizeOfLL]                 ;size update
+   220                                      
+   221                                      exit3:
+   222 00000284 61                              popa
+   223 00000285 C3                              ret 
+   224                                  
+   225                                  delAtEnd:
+   226 00000286 60                          pusha
+   227                                  
+   228                                      ; algo for help:
+   229                                          ; if only 1 node : 
+   230                                              ; head = null
+   231                                              ; tail = null
+   232                                          ; else
+   233                                          ;     tail = tail->prev             ;update head
+   234                                          ;     tail->next = null
+   235                                  
+   236                                      ; does any node even exist? 
+   237 00000287 833E[0500]00                cmp word [tail], null
+   238 0000028C 7426                        je exit4                             ;if tail null, no node exists to delete
+   239                                  
+   240                                      ; node does exist    
+   241                                  
+   242                                      ; is there a node other then tail or do we have only one node
+   243                                      ; check if tail->prev exists
+   244 0000028E 8B36[0500]                  mov si, [tail]
+   245 00000292 8B1C                        mov bx, [si+0]              ; bx = tail->prev  
+   246 00000294 83FB00                      cmp bx, null
+   247 00000297 750E                        jne multiple_nodes
+   248                                  
+   249                                              ; only one node
+   250 00000299 C706[0300]0000                      mov word [head], null
+   251 0000029F C706[0500]0000                      mov word [tail], null
+   252 000002A5 EB09                                jmp size_update2
+   253                                  
+   254                                      multiple_nodes:
+   255                                  
+   256                                          ;  tail update              ---> tail = tail->prev
+   257 000002A7 891E[0500]                      mov word [tail], bx         ; bx has tail prev rn. so, tail = tail->prev
+   258                                          
+   259                                          ; updatedTail->next = null
+   260 000002AB C747020000                      mov word [bx+2], null
+   261                                  
+   262                                      size_update2:
+   263 000002B0 FE0E[0700]                                  dec byte [sizeOfLL]                 ;size update
+   264                                      exit4:
+   265 000002B4 61                          popa
+   266 000002B5 C3                          ret
+   267                                  size:
+   268                                      ; returns size in ax
+   269 000002B6 31C0                        xor ax, ax
+   270 000002B8 A0[0700]                    mov al, byte [sizeOfLL]
+   271 000002BB C3                          ret
+   272                                  
+   273                                  isEmpty:
+   274                                      ; returns res in ax
+   275 000002BC 833E[0700]00                cmp word [sizeOfLL], 0
+   276 000002C1 7403                        je empty_list
+   277                                  
+   278 000002C3 31C0                                    xor ax, ax
+   279 000002C5 C3                                      ret
+   280                                  
+   281                                      empty_list:                
+   282 000002C6 B80100                                  mov ax, 0x1
+   283 000002C9 C3                                      ret
+   284                                  sasta_print: 
+   285                                      ; for testing purposes
+   286                                      ; only ax val and arrows
+   287 000002CA 60                          pusha
+   288                                  
+   289 000002CB 31F6                        xor si, si
+   290 000002CD 6800B8                      push 0xb800
+   291 000002D0 07                          pop es
+   292                                  
+   293                                      ; for help:    
+   294                                          ; use bx for traversal
+   295                                          ;val of ax is at [node+4]       while node is the starting index of node? duh            
+   296                                      
+   297 000002D1 E8E8FF                      call isEmpty            ;res in ax
+   298 000002D4 83F801                      cmp ax, 1
+   299 000002D7 741B                        je exit5                ; no node exists, so exit maaro
+   300                                  
+   301 000002D9 31C9                        xor cx, cx
+   302 000002DB 8A0E[0700]                  mov cl, byte [sizeOfLL]
+   303 000002DF 8B1E[0300]                  mov bx, [head]
+   304                                      here:
+   305 000002E3 56                              push si
+   306 000002E4 FF7704                          push word [bx+4]            ;ax value of that node
+   307 000002E7 E82002                          call print_hex
+   308                                                                      ; add si, 8 ;-----------conscious choice--------------------    ; 4 pos of val of ax added
+   309 000002EA E8F801                          call print_arrow            ; it will change si itself
+   310                                  
+   311                                          ; update bx. now gwt next node
+   312 000002ED 8B4702                          mov ax, [bx+2]              ; next of node in ax
+   313 000002F0 89C3                            mov bx, ax
+   314                                  
+   315 000002F2 E2EF                            loop here
+   316                                  
+   317                                          ; kachra
+   318                                              ; cmp word [bx], null 
+   319                                              ; je exit5
+   320                                              ; jmp here
+   321                                  
+   322                                      exit5:
+   323 000002F4 E8C901                      call print_null
+   324 000002F7 61                          popa
+   325 000002F8 C3                          ret
+   326                                  
+   327                                  createNode:
+   328                                      ; just a dummy dunc that creates a node at specific pos, sets its link to null, doesnt really add this node to list, just intialises its registers, thats all. its ahelping func for insertatpos
+   329 000002F9 55                          push bp
+   330 000002FA 89E5                        mov bp, sp
+   331                                  
+   332 000002FC 83EC02                      sub sp, 2
+   333 000002FF 895EFE                      mov word [bp-2], bx             ;savung val of bx so i can use it later
+   334                                  
+   335 00000302 60                          pusha
+   336 00000303 8B5E04                      mov bx, [bp+4]                   ; starting address of node 
+   337                                  
+   338 00000306 C7070000                    mov word [bx+0] , null      ; prev
+   339 0000030A C747020000                  mov word [bx+2] , null      ; next
+   340 0000030F 894704                      mov word [bx+4]  , ax
+   341                                      ; set bx
+   342 00000312 8B46FE                      mov ax, [bp-2]                 ;value pf bx
+   343 00000315 894706                      mov word [bx+6]  , ax
+   344 00000318 894F08                      mov word [bx+8]  , cx
+   345 0000031B 89570A                      mov word [bx+10] , dx
+   346 0000031E 89770C                      mov word [bx+12] , si
+   347 00000321 897F0E                      mov word [bx+14] , di
+   348 00000324 896F10                      mov word [bx+16] , bp
+   349 00000327 896712                      mov word [bx+18] , sp        
+   350 0000032A 8C4F14                      mov word [bx+20] , cs
+   351 0000032D 8C5F16                      mov word [bx+22] , ds
+   352 00000330 8C4718                      mov word [bx+24] , es
+   353 00000333 8C571A                      mov word [bx+26] , ss
+   354                                      ;set ip
+   355 00000336 8B4602                      mov ax, [bp+2]          ;ip value
+   356 00000339 89471C                      mov word [bx+28] , ax         ;ip
+   357                                  
+   358 0000033C 61                          popa
+   359 0000033D 89EC                        mov sp, bp
+   360 0000033F 5D                          pop bp
+   361 00000340 C20200                      ret 2
+   362                                  isValidPosToInsert:
+   363                                      ; rec res and pos
+   364                                      ; recieves address to place node at AND pos to insert node at       ;
+   365 00000343 55                          push bp
+   366 00000344 89E5                        mov bp, sp
+   367 00000346 57                          push di
+   368                                  
+   369 00000347 C746060000                  mov word [bp+6], 0x0
+   370                                  
+   371 0000034C 8B7E04                      mov di, [bp+4]
+   372 0000034F 47                          inc di
+   373 00000350 3B3E[0700]                  cmp di, [sizeOfLL]
+   374 00000354 7F05                        jg exitfalse                ; if size = 5 -> insert at 7? paeen 6 te hega nai 
+   375 00000356 C746060100                              mov word [bp+6], 0x1
+   376                                      exitfalse:
+   377 0000035B 5F                          pop di
+   378 0000035C 89EC                        mov sp, bp
+   379 0000035E 5D                          pop bp
+   380 0000035F C20200                      ret 2
+   381                                  getPrev_n_NextNode:         ; helping func for insert at pos
+   382                                      ;recieves prev res and next res and pos
+   383 00000362 55                          push bp
+   384 00000363 89E5                        mov bp, sp
+   385 00000365 60                          pusha
+   386                                  
+   387 00000366 8B7604                      mov si, word [bp+4]     ; pos
+   388 00000369 4E                          dec si                  ; pos -1
+   389                                  
+   390 0000036A 8A0E[0700]                  mov cl, byte [sizeOfLL]
+   391 0000036E 80F900                                                  cmp cl, 0
+   392 00000371 7426                                                    je exitwithNull
+   393                                  
+   394 00000373 31C9                        xor cx, cx
+   395 00000375 8B1E[0300]                  mov bx, [head]
+   396                                      nextNode:
+   397 00000379 89CA                            mov dx, cx
+   398 0000037B 39F2                            cmp dx, si                                         ; is euqal to pos -1 
+   399 0000037D 7503                            jne notPrev
+   400 0000037F 895E08                                  mov word [bp+8], bx                          ;prev res
+   401                                          notPrev:
+   402 00000382 3B5604                              cmp dx, word [bp+4]                              ; if equal to pos, it will be the next node of current node
+   403 00000385 7505                                jne notNext
+   404 00000387 895E06                                  mov word [bp+6], bx                         ;next res
+   405 0000038A EB0D                                    jmp exitwithNull
+   406                                          notNext:
+   407                                          ; update bx. now gwt next node  --> for traversal
+   408 0000038C 8B4702                          mov ax, [bx+2]              ; next of node in ax
+   409 0000038F 89C3                            mov bx, ax
+   410                                  
+   411 00000391 FEC1                            inc cl
+   412 00000393 3A0E[0700]                      cmp cl, byte [sizeOfLL] 
+   413 00000397 7CE0                            jl nextNode
+   414                                  
+   415                                      exitwithNull:
+   416 00000399 61                          popa
+   417 0000039A 89EC                        mov sp, bp
+   418 0000039C 5D                          pop bp
+   419 0000039D C20200                      ret 2               ; only cleanup pos
+   420                                  PrintNode:
+   421                                      ; rec node loc
+   422                                      ; prints its ax val
+   423                                  
+   424 000003A0 55                          push bp
+   425 000003A1 89E5                        mov bp, sp
+   426 000003A3 53                          push bx
+   427                                  
+   428 000003A4 8B5E04                      mov bx, [bp+4]      ; node
+   429                                  
+   430 000003A7 56                          push si
+   431 000003A8 FF7704                      push word [bx+4]    ; ax val pf that node
+   432 000003AB E85C01                      call print_hex
+   433 000003AE 5E                          pop si
+   434                                  
+   435 000003AF 5B                          pop bx
+   436 000003B0 89EC                        mov sp, bp
+   437 000003B2 5D                          pop bp
+   438 000003B3 C20200                      ret 2
+   439                                  insertAtPos:
+   440                                      ; recieves address to place node at AND pos to insert node at       ;
+   441 000003B6 55                          push bp
+   442 000003B7 89E5                        mov bp, sp
+   443 000003B9 83EC04                      sub sp, 4
+   444 000003BC 60                          pusha
+   445                                  
+   446 000003BD 837E0400                    cmp word [bp+4], 0              ;cmp pos with 0
+   447 000003C1 7508                        jne notthefirstnodeinlist
+   448                                      ;pehla node
+   449 000003C3 FF7606                                                      push word [bp+6]    ;address
+   450 000003C6 E8A4FD                                                      call insertAtFirst
+   451 000003C9 EB54                                                        jmp exit6
+   452                                  
+   453                                      notthefirstnodeinlist:
+   454                                      ; is pos even valid?
+   455 000003CB 6A00                            push 0x0
+   456 000003CD FF7604                          push word [bp+4]            ; pos 
+   457 000003D0 E870FF                          call isValidPosToInsert
+   458 000003D3 8F46FE                          pop word [bp-2]             ; res here
+   459 000003D6 837EFE00                        cmp word [bp-2], 0x0        ; if not valid, skip creating node and exit this routine
+   460 000003DA 7443                            je exit6
+   461                                      ; yes its valid:
+   462 000003DC FF7606                      push word [bp+6]            ; push address to place node at
+   463 000003DF E817FF                      call createNode             ; only creates node and sets prev and next to null
+   464 000003E2 FE06[0700]                  inc byte [sizeOfLL]         ; size inc
+   465                                  
+   466 000003E6 8B5E06                      mov bx, word [bp+6]         ; starting address of node
+   467                                  
+   468                                      ; thisNode->prev = prevnode, prevNode->next = thisNode
+   469                                      ; thisNode->next = nextnode, nextNode->prev = thisNode
+   470                                      otherNodesExist:
+   471                                      ; get node that will be prev and next of this node
+   472                                                  ;use bp-2 for prev node             --> for prev node: get the pos-1 node
+   473                                                  ;use bp-4 for next node             --> for next node: get the pos node
+   474                                  
+   475 000003E9 C746FE0000                  mov word [bp-2], null
+   476 000003EE C746FC0000                  mov word [bp-4], null
+   477                                  
+   478 000003F3 FF76FE                      push word [bp-2]        ;prev 
+   479 000003F6 FF76FC                      push word [bp-4]        ;next
+   480 000003F9 FF7604                      push word [bp+4]        ;pos
+   481 000003FC E863FF                      call getPrev_n_NextNode
+   482 000003FF 8F46FC                      pop word [bp-4]         ;next
+   483 00000402 8F46FE                      pop word [bp-2]         ;prev
+   484                                  
+   485                                      ; set neighboring links
+   486 00000405 8B76FE                      mov si, word [bp-2]     ;prev
+   487 00000408 8B7EFC                      mov di, word [bp-4]     ;next
+   488                                  
+   489 0000040B 8937                        mov word [bx+0], si       ;thisnode->prev = prev wala node
+   490 0000040D 897F02                      mov word [bx+2], di       ;thisnode->next = next wala node
+   491                                  
+   492 00000410 83FE00                      cmp si, null
+   493 00000413 7403                        je skip1
+   494 00000415 895C02                                          mov [si+2], bx          ;prev wala node->next = this node
+   495                                      skip1:
+   496 00000418 83FF00                      cmp di, null
+   497 0000041B 7402                        je exit6
+   498 0000041D 891D                                            mov [di+0], bx          ;next wala node->prev = this node
+   499                                      exit6:
+   500 0000041F 61                          popa
+   501 00000420 89EC                        mov sp, bp
+   502 00000422 5D                          pop bp
+   503 00000423 C20400                      ret 4
+   504                                  getNodeAtPos:
+   505                                      ;rec nodeRes and pos
+   506 00000426 55                          push bp
+   507 00000427 89E5                        mov bp, sp
+   508 00000429 60                          pusha
+   509                                  
+   510 0000042A 8B7604                      mov si, [bp+4]     ;pos
+   511 0000042D 31C9                        xor cx, cx
+   512 0000042F 8B1E[0300]                  mov bx, [head]
+   513                                      getNextNode:
+   514 00000433 39F1                            cmp cx, si                                         ; is euqal to pos -1 
+   515 00000435 7505                            jne not_pos_node
+   516 00000437 895E06                                              mov word [bp+6], bx                          ;prev res
+   517 0000043A EB0D                                                jmp exitgetNode
+   518                                  
+   519                                          not_pos_node:
+   520                                          ; update bx. now gwt next node  --> for traversal
+   521 0000043C 8B4702                          mov ax, [bx+2]              ; next of node in ax
+   522 0000043F 89C3                            mov bx, ax
+   523                                  
+   524 00000441 FEC1                            inc cl
+   525 00000443 3A0E[0700]                      cmp cl, byte [sizeOfLL] 
+   526 00000447 7CEA                            jl getNextNode
+   527                                  
+   528                                      exitgetNode:
+   529 00000449 61                          popa
+   530 0000044A 89EC                        mov sp, bp
+   531 0000044C 5D                          pop bp
+   532 0000044D C20200                      ret 2
+   533                                  
+   534                                  delAtPos:
+   535                                      ; rec pos to del node at
+   536 00000450 55                          push bp
+   537 00000451 89E5                        mov bp, sp
+   538 00000453 60                          pusha
+   539                                  
+   540                                      ; pos -> node to del at pos
+   541                                      ; get pos-1 node (prev to node to be deleted) i.e prevNode
+   542                                      ; get pos+1 node (next to node to be deleted) i.e nextNode
+   543 00000454 8B5604                      mov dx, word [bp+4]             ;pos
+   544                                  
+   545                                      ; is pos valid?
+   546                                                      ; push 0
+   547                                                      ; push dx
+   548                                                      ; call isValidPosToDel
+   549                                                      ; pop si
+   550                                                      ; cmp si, 1
+   551                                                      ; je exit7
+   552                                  
+   553 00000457 4A                          dec dx
+   554 00000458 6A00                        push word null
+   555 0000045A 52                          push dx
+   556 0000045B E8C8FF                      call getNodeAtPos
+   557 0000045E 5E                          pop si                          ; prevNode
+   558                                  
+   559 0000045F 83C202                      add dx, 2                       ; +1 to undo prev dec AND +1 for pos+1
+   560 00000462 6A00                        push word null
+   561 00000464 52                          push dx
+   562 00000465 E8BEFF                      call getNodeAtPos
+   563 00000468 5F                          pop di                          ; nextNode
+   564                                  
+   565                                      ; set prevNode->next = nextNode
+   566                                      ; and nextNode->prev = prevNode
+   567 00000469 83FE00                      cmp si, null
+   568 0000046C 7405                        je isFirstNode
+   569 0000046E 897C02                                          mov [si+2], di                  ; [si+2] is prevNode->next and di is NextNode. so, ==>   prevNode->next = nextNode
+   570 00000471 EB04                                            jmp skipPrevNode
+   571                                  
+   572                                      isFirstNode:
+   573 00000473 893E[0300]                                      mov word [head], di             ;next node is now head
+   574                                  
+   575                                      skipPrevNode:
+   576 00000477 83FF00                      cmp di, null
+   577 0000047A 7404                        je isLastNode
+   578 0000047C 8935                                            mov [di+0], si                  ; [di+0] is nextNode->prev and si is prevNode. so, ==>   nextNode->prev = prevNode
+   579 0000047E EB04                                            jmp skipNextNode
+   580                                  
+   581                                      isLastNode:
+   582 00000480 8936[0500]                                      mov word [tail], si             ;prev node is now tail
+   583                                      
+   584                                      skipNextNode:
+   585 00000484 FE0E[0700]                                      dec byte [sizeOfLL]
+   586                                  
+   587                                      exit7:
+   588 00000488 61                          popa
+   589 00000489 89EC                        mov sp, bp
+   590 0000048B 5D                          pop bp
+   591 0000048C C20200                      ret 2
+   592                                  reverseList:
+   593 0000048F 55                          push bp
+   594 00000490 89E5                        mov bp, sp
+   595 00000492 60                          pusha
+   596                                  
+   597                                      ; strategy:
+   598                                                  ; swap next and prev of each node
+   599                                                  ; tehn swap head and tail
+   600                                                  ; also in a loop traverse backwards!!! instead pf next node you will get prev node. why? cause paeen khudi swap kie next and prev?
+   601                                  
+   602                                      ; swap next and prev of each node:
+   603 00000493 31C9                        xor cx, cx
+   604 00000495 8A0E[0700]                  mov cl, byte [sizeOfLL]
+   605 00000499 8B1E[0300]                  mov bx, [head]
+   606                                      next_node:
+   607 0000049D 8B37                            mov si, [bx+0]      ;prev
+   608 0000049F 8B7F02                          mov di, [bx+2]      ;next
+   609 000004A2 893F                            mov [bx+0], di      ; next at prev
+   610 000004A4 897702                          mov [bx+2], si      ; prev at next
+   611                                  
+   612                                          ; BACKWARD TRAVERSAL CAUSE WE ARE REVERSING AND SWAPPING PREV AND NEXT
+   613 000004A7 8B07                            mov ax, [bx+0]              ; next of node in ax
+   614 000004A9 89C3                            mov bx, ax                  ; update bx. now gwt next node
+   615 000004AB E2F0                            loop next_node
+   616                                  
+   617                                      ; swap head and tail
+   618 000004AD 8B1E[0300]                  mov bx, [head]
+   619 000004B1 A1[0500]                    mov ax, [tail]
+   620 000004B4 A3[0300]                    mov [head], ax
+   621 000004B7 891E[0500]                  mov [tail], bx
+   622                                  
+   623 000004BB 61                          popa 
+   624 000004BC 89EC                        mov sp, bp
+   625 000004BE 5D                          pop bp
+   626 000004BF C3                          ret
+   627                                  ; isValidPosToDel:
+   628                                      ;     ; rec res and pos
+   629                                      ;     ; recieves address to place node at AND pos to insert node at       ;
+   630                                      ;     push bp
+   631                                      ;     mov bp, sp
+   632                                      ;     push di
+   633                                  
+   634                                      ;     mov word [bp+6], 0x1
+   635                                  
+   636                                      ;     mov di, [bp+4]              ; pos
+   637                                      ;     cmp di, [sizeOfLL]          ; pos < size ==> true else false
+   638                                      ;     jl exit_true                ; if size = 5 ---> can del at index 0,1,2,3,4
+   639                                      ;                 mov word [bp+6], 0x0
+   640                                      ;     exit_true:
+   641                                      ;     pop di
+   642                                      ;     mov sp, bp
+   643                                      ;     pop bp
+   644                                      ;     ret 2
+   645                                  print_null:
+   646                                      ; use si as 
+   647                                      ; es and si ki value caller func bheje ga malai maar k
+   648 000004C0 50                          push ax
+   649 000004C1 B407                        mov ah, 0x07
+   650                                  
+   651 000004C3 B06E                        mov al, 'n'
+   652 000004C5 268904                      mov word [es:si], ax
+   653 000004C8 83C602                      add si, 2
+   654                                  
+   655 000004CB B075                        mov al, 'u'
+   656 000004CD 268904                      mov word [es:si], ax  
+   657 000004D0 83C602                      add si, 2 
+   658                                  
+   659 000004D3 B06C                        mov al, 'l'
+   660 000004D5 268904                      mov word [es:si], ax  
+   661 000004D8 83C602                      add si, 2 
+   662                                  
+   663 000004DB B06C                        mov al, 'l'
+   664 000004DD 268904                      mov word [es:si], ax  
+   665 000004E0 83C602                      add si, 2  
+   666                                  
+   667 000004E3 58                          pop ax
+   668 000004E4 C3                          ret
+   669                                  print_arrow:
+   670                                      ; use si as indexer
+   671                                      ; es and si ki value caller func bheje ga malai maar k
+   672 000004E5 50                          push ax
+   673 000004E6 B407                        mov ah, 0x07
+   674                                  
+   675 000004E8 B020                        mov al, ' '
+   676 000004EA 268904                      mov word [es:si], ax
+   677 000004ED 83C602                      add si, 2
+   678                                  
+   679 000004F0 B02D                        mov al, '-'
+   680 000004F2 268904                      mov word [es:si], ax  
+   681 000004F5 83C602                      add si, 2 
+   682                                  
+   683 000004F8 B03E                        mov al, '>'
+   684 000004FA 268904                      mov word [es:si], ax  
+   685 000004FD 83C602                      add si, 2 
+   686                                  
+   687 00000500 B020                        mov al, ' '
+   688 00000502 268904                      mov word [es:si], ax  
+   689 00000505 83C602                      add si, 2  
+   690                                  
+   691 00000508 58                          pop ax
+   692 00000509 C3                          ret
+   693                                  print_hex:
+   694                                      ;recieves index to print at and val on stcak as a parameter
+   695 0000050A 55                          push bp
+   696 0000050B 89E5                        mov bp, sp
+   697 0000050D 50                          push ax
+   698 0000050E 53                          push bx
+   699 0000050F 51                          push cx
+   700 00000510 52                          push dx
+   701 00000511 06                          push es
+   702 00000512 57                          push di
+   703 00000513 8B4604                      mov ax, [bp+4]  ;ax = num
+   704 00000516 BB1000                      mov bx, 16
+   705 00000519 31C9                        xor cx, cx
+   706                                      ;split digits
+   707                                      accessNextDigit:
+   708 0000051B 31D2                            xor dx, dx
+   709 0000051D F7F3                            div bx
+   710                                          ;add dx, 0x30       ;30 is ascii of 0 in hex
+   711 0000051F 52                              push dx
+   712 00000520 41                              inc cx      ;inc count of digits
+   713 00000521 83F800                          cmp ax, 0
+   714 00000524 75F5                            jnz accessNextDigit
+   715                                      ;print each dig
+   716 00000526 B800B8                      mov ax, 0xb800
+   717 00000529 8EC0                        mov es, ax
+   718 0000052B 8B7E06                      mov di, [bp+6]              ;INDEX TO PRINT AT FROM STACK
+   719 0000052E 89F7                        mov di, si   ;-----------------conscious choice--------------------
+   720                                      nextloc:
+   721 00000530 5A                              pop dx
+   722 00000531 B407                            mov ah, 0x07        ;attribute bit
+   723                                                                          ; ======>  DIDNT WORK       mov al, byte [acode+dl]
+   724 00000533 88D0                            mov al, dl
+   725 00000535 80FA09                          cmp dl, 0x9
+   726 00000538 7F04                            jg add_char_ascii
+   727                                  
+   728 0000053A 0430                            add al, 0x30
+   729 0000053C EB04                            jmp skip_char_ascii
+   730                                  
+   731                                          add_char_ascii:
+   732 0000053E 0441                            add al, 0x41           ;0x41 is ascii of A    ;0x41 - A (0to9)
+   733 00000540 2C0A                            sub al, 0xA
+   734                                  
+   735                                          skip_char_ascii:
+   736 00000542 268805                          mov [es:di], al
+   737 00000545 83C702                          add di, 2
+   738 00000548 E2E6                            loop nextloc
+   739 0000054A 89FE                        mov si, di   ;-----------------conscious choice--------------------
+   740                                  
+   741 0000054C 5F                          pop di
+   742 0000054D 07                          pop es
+   743 0000054E 5A                          pop dx
+   744 0000054F 59                          pop cx
+   745 00000550 5B                          pop bx
+   746 00000551 58                          pop ax
+   747                                  
+   748 00000552 89EC                        mov sp, bp   
+   749 00000554 5D                          pop bp
+   750 00000555 C20400                      ret 4
+   751                                  clrscr: 
+   752 00000558 50                          push ax
+   753 00000559 06                          push es
+   754 0000055A 57                          push di
+   755                                  
+   756 0000055B B800B8                      mov ax, 0xb800
+   757 0000055E 8EC0                        mov es, ax
+   758 00000560 BF0000                      mov di, 0                     ;location indexer
+   759                                  
+   760                                      nextpos:
+   761 00000563 26C7052007                      mov word[es:di], 0x0720   ;black ;space  character
+   762 00000568 83C702                          add di, 2                 ;next cell
+   763 0000056B 81FFA00F                        cmp di, 4000              ;total cells - 80*25= 2000 (2 byte cells) so 4000
+   764 0000056F 75F2                            jnz nextpos
+   765                                  
+   766 00000571 5F                          pop di
+   767 00000572 07                          pop es
+   768 00000573 58                          pop ax
+   769 00000574 C3                          ret
+   770                                  ; node struct for understanding:
+   771                                      ; myNode: dw prev, next, ax_val, bx_val, .....
+   772                                  ; in c++ :
+   773                                          ; class node {
+   774                                          ;         node* prev; 
+   775                                          ;         node* next;
+   776                                          ;   values of registers:
+   777                                          ;       ax, bx, cx, dx, si, di, bp, sp, cs, ds, es, ss, ip       =====>  30 bytes so far
+   778                                          ;     }
